@@ -95,7 +95,9 @@ class ParticleFilter:
         # self.measurement_angle_stddev.
         d_diff = measurement[0] - predicted_measurement[0]
         a_diff = measurement[1] - predicted_measurement[1]
-        a_diff = ((a_diff + 2*pi)%(2*pi)) - pi
+        a_diff = ((a_diff + 2*pi)%(2*pi))
+        if a_diff > pi:
+            a_diff = a_diff - 2*pi
         return (normal_dist.pdf(d_diff, 0, self.measurement_distance_stddev) 
                *normal_dist.pdf(a_diff, 0, self.measurement_angle_stddev))
         
@@ -116,7 +118,7 @@ class ParticleFilter:
             for pairing in assignment:
                 expected_measurement = [0, 0]
                 expected_measurement[0] = ( (p[0]-pairing[1][0])**2 + (p[1]-pairing[1][1])**2 )**0.5
-                expected_measurement[1] = atan2( (pairing[1][1] - p[1]), (pairing[1][0] - p[0]) )
+                expected_measurement[1] = atan2( (pairing[1][1] - p[1]), (pairing[1][0] - p[0]) ) - p[2]
                 total_weight *= self.probability_of_measurement(pairing[0], expected_measurement)
             weights.append(total_weight)
         return weights
@@ -134,7 +136,11 @@ class ParticleFilter:
         total_weight = cumulative_weights[len(cumulative_weights)-1]
         new_particles = []
         for i in range(len(self.particles)):
-            new_particles.append(self.particles[self.find_index(random.random()*total_weight, cumulative_weights)])
+            index = self.find_index(random.random()*total_weight, cumulative_weights)
+            #print "Index: " + str(index)
+            #print "Relative Weight: " + str(weights[index]/total_weight)
+            #print
+            new_particles.append(self.particles[index])
         return new_particles
         
     def find_index(self, num, cumulative_weights):
@@ -148,15 +154,16 @@ class ParticleFilter:
         if num >= cumulative_weights[mid] and num <= cumulative_weights[mid+1]:
             return(mid)
         elif num < cumulative_weights[mid]:
-            return self.binary_search(num, cumulative_weights, start, mid)
+            return self.binary_search(num, cumulative_weights, start, mid-1)
         else:
-            return self.binary_search(num, cumulative_weights, mid, end)
+            return self.binary_search(num, cumulative_weights, mid+1, end)
 
     def correct(self, cylinders, landmarks):
         """The correction step of the particle filter."""
         # First compute all weights.
         weights = self.compute_weights(cylinders, landmarks)
         # Then resample, based on the weight array.
+        #print "*****************************Correcting********************************"
         self.particles = self.resample(weights)
 
     def print_particles(self, file_desc):
@@ -187,7 +194,7 @@ if __name__ == '__main__':
     measurement_angle_stddev = 15.0 / 180.0 * pi  # Angle measurement error.
 
     # Generate initial particles. Each particle is (x, y, theta).
-    number_of_particles = 50
+    number_of_particles = 200
     measured_state = (1850.0, 1897.0, 213.0 / 180.0 * pi)
     standard_deviations = (100.0, 100.0, 10.0 / 180.0 * pi)
     initial_particles = []
