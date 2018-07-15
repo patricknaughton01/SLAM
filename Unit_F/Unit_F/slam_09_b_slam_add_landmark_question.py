@@ -101,6 +101,14 @@ class ExtendedKalmanFilterSLAM:
 
         # --->>> Put here your previous code to compute the new
         #        covariance and state.
+        dim = 3 + 2*self.number_of_landmarks
+        G_full = eye(dim)
+        G_full[0:3,0:3] = G3
+        R_full = zeros((dim, dim))
+        R_full[0:3,0:3] = R3
+        self.covariance = dot(G_full, dot(self.covariance, G_full.T)) + R_full
+        # state' = g(state, control)
+        self.state[0:3] = self.g(self.state[0:3], control, self.robot_width) 
 
     def add_landmark_to_state(self, initial_coords):
         """Enlarge the current state and covariance matrix to include one more
@@ -120,8 +128,16 @@ class ExtendedKalmanFilterSLAM:
         # - Do not forget to increment self.number_of_landmarks.
         # - Do not forget to return the index of the newly added landmark. I.e.,
         #   the first call should return 0, the second should return 1.
-
-        return -1  # Replace this.
+        self.number_of_landmarks += 1
+        self.state = append(self.state, array(initial_coords))
+        curr_cov_dim = self.covariance.shape
+        new_dim = [curr_cov_dim[0] + 2, curr_cov_dim[1] + 2]
+        new_covariance = zeros(new_dim)
+        new_covariance[0:curr_cov_dim[0], 0:curr_cov_dim[1]] = self.covariance
+        new_covariance[curr_cov_dim[0], curr_cov_dim[0]] = 10**10
+        new_covariance[curr_cov_dim[0]+1, curr_cov_dim[0]+1] = 10**10
+        self.covariance = new_covariance
+        return self.number_of_landmarks-1  
 
     def get_landmarks(self):
         """Returns a list of (x, y) tuples of all landmark positions."""

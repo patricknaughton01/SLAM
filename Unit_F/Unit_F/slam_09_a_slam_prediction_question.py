@@ -112,9 +112,15 @@ class ExtendedKalmanFilterSLAM:
 
         # Now enlarge G3 and R3 to accomodate all landmarks. Then, compute the
         # new covariance matrix self.covariance.
-        self.covariance = dot(G3, dot(self.covariance, G3.T)) + R3  # Replace this.
+        # 3 values to specify robot state, two for each landmark
+        dim = 3 + 2*self.number_of_landmarks
+        G_full = eye(dim)
+        G_full[0:3,0:3] = G3
+        R_full = zeros((dim, dim))
+        R_full[0:3,0:3] = R3
+        self.covariance = dot(G_full, dot(self.covariance, G_full.T)) + R_full
         # state' = g(state, control)
-        self.state = self.g(self.state, control, self.robot_width)  # Replace this.
+        self.state[0:3] = self.g(self.state[0:3], control, self.robot_width) 
 
     @staticmethod
     def get_error_ellipse(covariance):
