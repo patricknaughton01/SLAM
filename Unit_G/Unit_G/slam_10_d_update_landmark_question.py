@@ -51,17 +51,24 @@ class Particle:
                                             scanner_displacement):
         """Returns the expected distance and bearing measurement for a given
            landmark number and the pose of this particle."""
-        # --->>> Insert your previous code here.
-        return np.array([0.0, 0.0])  # Replace this.
+        return self.h(
+            self.pose, 
+            self.landmark_positions[landmark_number], 
+            scanner_displacement
+        )
 
     def H_Ql_jacobian_and_measurement_covariance_for_landmark(
         self, landmark_number, Qt_measurement_covariance, scanner_displacement):
         """Computes Jacobian H of measurement function at the particle's
            position and the landmark given by landmark_number. Also computes the
            measurement covariance matrix."""
-        # --->>> Insert your previous code here.
-        H = np.eye(2)  # Replace this.
-        Ql = np.eye(2)  # Replace this.
+        H = self.dh_dlandmark(
+            self.pose, 
+            self.landmark_positions[landmark_number], 
+            scanner_displacement
+        )
+        Ql = np.dot(H, np.dot(self.landmark_covariances[landmark_number], H.T)) \
+            + Qt_measurement_covariance
         return (H, Ql)
 
     def update_landmark(self, landmark_number, measurement,
@@ -77,7 +84,23 @@ class Particle:
         #   h_expected_measurement_for_landmark()
         # - Remember to update landmark_positions[landmark_number] as well
         #   as landmark_covariances[landmark_number].
-        pass  # Replace this.
+        H, Ql = self.H_Ql_jacobian_and_measurement_covariance_for_landmark(
+            landmark_number, Qt_measurement_covariance,
+            scanner_displacement
+        )
+        uold = self.landmark_positions[landmark_number]
+        cold = self.landmark_covariances[landmark_number]
+        K = np.dot(cold, np.dot(H.T, np.linalg.inv(Ql)))
+        self.landmark_positions[landmark_number] = (uold 
+            + np.dot(
+                K, 
+                measurement-self.h_expected_measurement_for_landmark(
+                    landmark_number, scanner_displacement
+                )
+        ))
+        self.landmark_covariances[landmark_number] = (
+            np.dot((np.eye(H.shape[0]) - np.dot(K, H)), cold)
+        )
 
 
 def insert_landmarks(particle):

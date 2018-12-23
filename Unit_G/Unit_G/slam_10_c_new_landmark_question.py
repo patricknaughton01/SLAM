@@ -53,8 +53,17 @@ class Particle:
         # - H is obtained from dh_dlandmark()
         # - Use np.linalg.inv(A) to invert matrix A
         # - As usual, np.dot(A,B) is the matrix product of A and B.
-        self.landmark_positions.append(np.array([0.0, 0.0]))  # Replace this.
-        self.landmark_covariances.append(np.eye(2))  # Replace this.
+        landmark = LegoLogfile.scanner_to_world(
+            scanner_pose,
+            measurement_in_scanner_system
+        )
+        self.landmark_positions.append(landmark)
+        H_inv = np.linalg.inv(
+            self.dh_dlandmark(self.pose, landmark, scanner_displacement)
+        )
+        self.landmark_covariances.append(
+            np.dot(H_inv, np.dot(Qt_measurement_covariance, H_inv.T))
+        )
 
 
 if __name__ == '__main__':

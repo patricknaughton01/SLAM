@@ -57,7 +57,11 @@ class Particle:
         # - the static function h() computes the desired value
         # - the state is the robot's pose
         # - the landmark is taken from self.landmark_positions.
-        return np.array([0.0, 0.0])  # Replace this.
+        return self.h(
+            self.pose, 
+            self.landmark_positions[landmark_number], 
+            scanner_displacement
+        )
 
     def H_Ql_jacobian_and_measurement_covariance_for_landmark(
         self, landmark_number, Qt_measurement_covariance, scanner_displacement):
@@ -69,8 +73,13 @@ class Particle:
         # - H is computed using dh_dlandmark.
         # - To compute Ql, you will need the product of two matrices,
         #   which is np.dot(A, B).
-        H = np.eye(2)  # Replace this.
-        Ql = np.eye(2)  # Replace this.
+        H = self.dh_dlandmark(
+            self.pose, 
+            self.landmark_positions[landmark_number], 
+            scanner_displacement
+        )
+        Ql = np.dot(H, np.dot(self.landmark_covariances[landmark_number], H.T)) \
+            + Qt_measurement_covariance
         return (H, Ql)
 
     def wl_likelihood_of_correspondence(self, measurement,
@@ -88,7 +97,13 @@ class Particle:
         #   will only need Ql, not H
         # - np.linalg.det(A) computes the determinant of A
         # - np.dot() does not distinguish between row and column vectors.
-        return 0.01 # Replace this.
+        delta_z = (measurement 
+            - self.h_expected_measurement_for_landmark(
+                landmark_number, scanner_displacement))
+        Ql = self.H_Ql_jacobian_and_measurement_covariance_for_landmark(
+            landmark_number, Qt_measurement_covariance, scanner_displacement)[1]
+        return (exp(-0.5 * np.dot(delta_z.T, np.dot(np.linalg.inv(Ql), delta_z)))
+            /(2*pi*sqrt(np.linalg.det(Ql))))
 
     def compute_correspondence_likelihoods(self, measurement,
                                            number_of_landmarks,
