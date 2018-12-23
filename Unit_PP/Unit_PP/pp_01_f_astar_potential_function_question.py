@@ -107,6 +107,8 @@ def astar(start, goal, obstacles):
     # The fourth component is the position we came from when entering the tuple
     #   to the front.
 
+    front = [ (distance(start, goal), 0.001, start, None) ]
+
     # In the beginning, no cell has been visited.
     extents = obstacles.shape
     visited = np.zeros(extents, dtype=np.float32)
@@ -117,12 +119,16 @@ def astar(start, goal, obstacles):
     # While there are elements to investigate in our front.
     while front:
         # Get smallest item and remove from front.
-
+        element = heappop(front)
         # Check if this has been visited already.
+        # CHANGE 01_e: use the following line as shown.
+        total_cost, cost, pos, previous = element
 
-        # Now it has been visited. Mark with cost.
-
-        # Also remember that we came from previous when we marked pos.
+        if visited[pos] > 0:
+            continue
+        # Now it is visited. Mark with cost.
+        visited[pos] = cost
+        came_from[pos] = previous
 
         # Check if the goal has been reached.
         if pos == goal:
@@ -131,21 +137,31 @@ def astar(start, goal, obstacles):
         # Check all neighbors.
         for dx, dy, deltacost in movements:
             # Determine new position and check bounds.
-
+            new_x = pos[0] + dx
+            new_y = pos[1] + dy
+            if new_x < 0 or new_x >= extents[0] or new_y < 0 or new_y >= extents[1]:
+                continue
             # Add to front if: not visited before and no obstacle.
             new_pos = (new_x, new_y)
-            # CHANGE 01_f: add the 'obstacle cost' to new_cost AND
-            #   new_total_cost. As obstacle cost, use:
-            #   obstacles[new_pos] / 64.
-            #   The divider 64 determines the tradeoff between 'avoiding
-            #   obstacles' and 'driving longer distances'. You may experiment
-            #   with other values, but make sure you set it back to 64 for
-            #   the grader.
-            # Please check again that you do not enter a tuple into
-            # the heap if it has been visited already or its obstacles[]
-            # value is 255 (check for '==255', not for '> 0').
+            new_cost = cost + deltacost + obstacles[new_pos]/64
+            if visited[new_pos] == 0 and obstacles[new_pos] != 255:
+                heappush(front, 
+                    (distance(new_pos, goal) + new_cost, new_cost, new_pos, pos)
+                )
+            # CHANGE 01_e: When push'ing the new tuple to the heap,
+            #   this now has to be a 4-tuple:
+            #   (new_total_cost, new_cost, new_pos, pos)
+            #   where new_cost is the cost from start to new_pos,
+            #   and new_total_cost is new_cost plus the estimated cost
+            #   from new_pos to goal.
 
     # Reconstruct path, starting from goal.
+    path = []
+    if pos == goal:  # If we reached the goal, unwind backwards.
+        while pos:
+            path.append(pos)
+            pos = came_from[pos]
+        path.reverse()  # Reverse so that path is from start to goal.
 
     return (path, visited)
 

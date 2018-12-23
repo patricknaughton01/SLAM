@@ -75,12 +75,14 @@ def dijkstra(start, goal, obstacles):
         # Get smallest item and remove from front.
         # CHANGE 01_c: replace the minimum search and removal of element
         #   by a single call to heappop()
+        element = heappop(front)
 
         # Check if this has been visited already.
         cost, pos = element
-
+        if visited[pos] > 0:
+            continue
         # Now it is visited. Mark with cost.
-
+        visited[pos] = cost
         # Check if the goal has been reached.
         if pos == goal:
             break  # Finished!
@@ -88,9 +90,14 @@ def dijkstra(start, goal, obstacles):
         # Check all neighbors.
         for dx, dy, deltacost in movements:
             # Determine new position and check bounds.
-
+            new_x = pos[0] + dx
+            new_y = pos[1] + dy
+            if new_x < 0 or new_x >= extents[0] or new_y < 0 or new_y >= extents[1]:
+                continue
             # Add to front if: not visited before and no obstacle.
             new_pos = (new_x, new_y)
+            if visited[new_pos] == 0 and obstacles[new_pos] != 255:
+                heappush(front, (cost + deltacost, new_pos))
             # CHANGE 01_c: instead of calling append() on the list, use
             #   heappush(). This will move the new tuple to the correct
             #   location in the heap.
